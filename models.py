@@ -49,6 +49,11 @@ class Likes(db.Model):
         unique=True
     )
 
+    @classmethod
+    def get_user_like(cls, user_id, message_id):
+        like = cls.query.filter_by(user_id = user_id, message_id = message_id).first()
+        return like
+
 
 class User(db.Model):
     """User in the system."""
@@ -169,6 +174,11 @@ class User(db.Model):
                 return user
 
         return False
+    
+    @classmethod
+    def get_user_by_id(cls, id):
+        user = cls.query.filter_by(id = id).first()
+        return user
 
 
 class Message(db.Model):
@@ -199,6 +209,13 @@ class Message(db.Model):
     )
 
     user = db.relationship('User')
+
+    @classmethod
+    def get_user_id(cls, id):
+        msg = cls.query.filter_by(id = id).first()
+        return msg.user_id
+    
+
 
 
 def connect_db(app):

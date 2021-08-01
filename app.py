@@ -7,7 +7,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import ProfileEditForm, UserAddForm, LoginForm, MessageForm
-from models import db, connect_db, User, Message
+from models import Likes, db, connect_db, User, Message
 
 CURR_USER_KEY = "curr_user"
 
@@ -300,6 +300,44 @@ def messages_destroy(message_id):
 
     return redirect(f"/users/{g.user.id}")
 
+@app.route('/users/add_like/<int:message_id>', methods=["POST"])
+def add_like(message_id):
+    """like a message"""
+    
+
+    # 1. Add a new feature that allows a user to “like” a warble.
+    like = Likes.get_user_like(g.user.id, message_id)
+    if like is None:
+
+        msg_user_id = Message.get_user_id(message_id)
+        # 2. They should only be able to like warbles written by other users. 
+        if msg_user_id == session[CURR_USER_KEY]:
+            flash("You can't like your own message!", "danger")
+            return redirect("/")
+    
+        like = Likes(
+                message_id=message_id,
+                user_id=session[CURR_USER_KEY]
+            )
+
+        db.session.add(like)
+        db.session.commit()
+    else:
+        # DELETE from likes
+    # 4. They should be able to unlike a warble, by clicking on that star.
+        db.session.delete(like)
+        db.session.commit()
+        return redirect("/")
+
+
+    return redirect(f"/users/{g.user.id}")
+
+@app.route('/users/<int:user_id>/likes', methods=["GET"])
+def show_all_likes(user_id):
+    # 5. On a profile page, it should show how many warblers that user has liked, 
+    # and this should link to a page showing their liked warbles.
+    likes = User.get_user_by_id(user_id).likes
+    return render_template("users/likes.html", likes=likes)
 
 ##############################################################################
 # Homepage and error pages
@@ -322,7 +360,7 @@ def homepage():
                     .limit(100)
                     .all())
 
-        return render_template('home.html', messages=messages)
+        return render_template('home.html', messages=messages, likes=g.user.likes)
 
     else:
         return render_template('home-anon.html')
